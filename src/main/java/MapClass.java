@@ -4,6 +4,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,6 +28,12 @@ public class MapClass extends Mapper<LongWritable, Text, EventsWritableComparabl
     public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
         String line = value.toString();
         String[] tokens = line.split("\t");
+        if (tokens.length != 24)
+        {
+            Logger log = Logger.getLogger(MapClass.class.getName());
+            log.warning("Invalid size of line");
+            return;
+        }
 
         try {
             int price = Integer.parseInt(tokens[tokens.length - PRICE_COLUMN_END]);
@@ -43,7 +50,8 @@ public class MapClass extends Mapper<LongWritable, Text, EventsWritableComparabl
 
         } catch (NumberFormatException ex) {
             // Wrong string
-            System.out.println("Wrong string");
+            Logger log = Logger.getLogger(MapClass.class.getName());
+            log.warning("Wrong string");
         }
     }
 }

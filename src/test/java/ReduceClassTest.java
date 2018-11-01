@@ -27,25 +27,25 @@ public class ReduceClassTest {
         values = new ArrayList<IntWritable>();
         values.add(new IntWritable(10));
         values.add(new IntWritable(6));
-//        reduceDriver.addCacheFile("./dataCityID/city.en.txt");
+        reduceDriver.addCacheFile("dataCityID/city.en.txt");
     }
 
     /**
      * Correct Reducer test with cityId from city names file.
      * @throws IOException
      */
-//    @Test
-//    public void sumAndCorrectCityIdReducerTest() throws IOException {
-//        reduceDriver.withInput(
-//                new EventsWritableComparable(217, "Windows"),
-//                values
-//        );
-//        reduceDriver.withOutput(
-//                new Text("guangzhou"),
-//                new IntWritable(16)
-//        );
-//        reduceDriver.runTest();
-//    }
+    @Test
+    public void sumAndCorrectCityIdReducerTest() throws IOException {
+        reduceDriver.withInput(
+                new EventsWritableComparable(217, "Windows"),
+                values
+        );
+        reduceDriver.withOutput(
+                new Text("guangzhou"),
+                new IntWritable(16)
+        );
+        reduceDriver.runTest();
+    }
 
     /**
      * Correct Reducer test without cityID in city names file.
@@ -57,9 +57,6 @@ public class ReduceClassTest {
                 new EventsWritableComparable(216, "OS X"),
                 values
         );
-        reduceDriver.withOutput(
-                new Text("City ID - #216"),
-                new IntWritable(16));
         reduceDriver.runTest();
     }
 }

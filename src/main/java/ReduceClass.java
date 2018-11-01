@@ -1,13 +1,16 @@
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.StringTokenizer;
+import java.util.logging.Logger;
 
 /**
  * Reduce class which is executed after the map class and takes key(EventsWritableComparable - info about event)
@@ -16,41 +19,31 @@ import java.util.StringTokenizer;
  */
 public class ReduceClass extends Reducer<EventsWritableComparable, IntWritable, Text, IntWritable> {
 
-    private HashMap<Integer, String> citiesMap = new HashMap <Integer, String>();
+    private HashMap<Integer, String> citiesMap = new HashMap <>();
 
     @Override
-    protected void setup(Context context) throws IOException, InterruptedException {
+    protected void setup(Context context) {
         try{
             URI[] filesURI = context.getCacheFiles();
             if(filesURI != null && filesURI.length > 0) {
                 for(URI fileURI : filesURI) {
-                    readFileWriteToCitiesMap(fileURI);
+                    BufferedReader bufferedReader =
+                            new BufferedReader(
+                                    new InputStreamReader(
+                                            FileSystem.get(context.getConfiguration())
+                                                    .open(new Path(fileURI))));
+                    String line;
+                    while((line = bufferedReader.readLine()) != null) {
+                        StringTokenizer itr = new StringTokenizer(line);
+                        citiesMap.put(Integer.parseInt(itr.nextToken()), itr.nextToken());
+                    }
                 }
             }
         } catch(IOException ex) {
-            System.err.println("Exception in mapper setup: " + ex.getMessage());
+            Logger log = Logger.getLogger(ReduceClass.class.getName());
+            log.warning("Exception in reducer setup: " + ex.getMessage());
         }
     }
-
-    public void readFileWriteToCitiesMap(URI filePath) {
-        try{
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath.toString()));
-            String line = null;
-            while((line = bufferedReader.readLine()) != null) {
-                StringTokenizer itr = new StringTokenizer(line);
-                citiesMap.put(Integer.parseInt(itr.nextToken()),itr.nextToken());
-            }
-
-//            List<String> lines = Files.readAllLines(Paths.get(filePath.getPath()), StandardCharsets.UTF_8);
-//            for (String line: lines) {
-//                StringTokenizer itr = new StringTokenizer(line);
-//                citiesMap.put(Integer.parseInt(itr.nextToken()),itr.nextToken());
-//            }
-        } catch(IOException ex) {
-            System.err.println("Exception while reading stop words file: " + ex.getMessage());
-        }
-    }
-
 
     /**
      * Method which performs the reduce operation and sums
@@ -66,10 +59,11 @@ public class ReduceClass extends Reducer<EventsWritableComparable, IntWritable, 
         Text text = null;
         if (citiesMap.containsKey(key.getCityID())) {
             text = new Text(citiesMap.get(key.getCityID()));
+            context.write(text, new IntWritable(sum));
         }
         else {
-            text = new Text("City ID - #" + key.getCityID());
+            Logger log = Logger.getLogger(ReduceClass.class.getName());
+            log.warning("No city found with this ID" + key.getCityID());
         }
-        context.write(text, new IntWritable(sum));
     }
 }
